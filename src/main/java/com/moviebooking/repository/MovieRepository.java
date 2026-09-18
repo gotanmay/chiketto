@@ -1,10 +1,13 @@
 package com.moviebooking.repository;
 
 import com.moviebooking.db.DBConnection;
+import com.moviebooking.model.Genre;
 import com.moviebooking.model.Movie;
+import com.moviebooking.model.Rating;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -35,7 +38,30 @@ public class MovieRepository {
     }
 
     public Optional<Movie> findById(String id) {
-        return Optional.ofNullable(movies.get(id));
+        String sql = "SELECT * FROM movies WHERE id = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, id);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                String title = rs.getString("title");
+                Genre genre = Genre.valueOf(rs.getString("genre"));
+                int durationMinutes = rs.getInt("duration_minutes");
+                String language = rs.getString("language");
+                Rating rating = Rating.valueOf(rs.getString("rating"));
+
+                Movie movie = new Movie(id, title, genre, durationMinutes, language, rating);
+                return Optional.of(movie);
+            }
+
+            return Optional.empty();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to find movie: " + e.getMessage(), e);
+        }
     }
 
     public List<Movie> findAll() {
